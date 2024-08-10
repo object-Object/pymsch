@@ -84,11 +84,11 @@ class Schematic:
         block_count = _ByteUtils.pop_int(data, 4)
         for i in range(block_count):
             block_index = _ByteUtils.pop_int(data, 1)
+            print(block_index)
             block_x = _ByteUtils.pop_int(data, 2)
             block_y = _ByteUtils.pop_int(data, 2)
             block_config = _ByteUtils.pop_object(data)
             block_rotation = _ByteUtils.pop_int(data, 1)
-
             block_type = Content[types[block_index].upper().replace('-', '_')]
             self.add_block(Block(block_type, block_x, block_y, block_config, block_rotation))    
 
@@ -1009,6 +1009,7 @@ class _ByteUtils:
         out_bytes = bytearray()
         for i in range(byte_count):
             out_bytes.append(data.pop(0))
+        print(out_bytes)
         return(out_bytes)
 
     def pop_int(data: bytearray, byte_count: int, signed=False):
@@ -1038,8 +1039,12 @@ class _ByteUtils:
                 return _ByteUtils.pop_int(data, 8, signed=True)
             case 3: #float
                 return _ByteUtils.pop_float(data)
-            case 4: #double
-                return _ByteUtils.pop_double(data)
+            case 4: #string
+                exists = _ByteUtils.pop_bytes(data, 1)
+                if(exists):
+                    return _ByteUtils.pop_UTF(data)
+                else:
+                    return None
             case 5: #content
                 type_id = _ByteUtils.pop_int(data, 1)
                 content_id = _ByteUtils.pop_int(data, 2)
