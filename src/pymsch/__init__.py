@@ -27,7 +27,7 @@ class Schematic:
         self.tiles = []
         self.tags = {"name": "unnamed"}
         self.labels = []
-        self.filled_list = []
+        self._filled_list = []
 
     def __repr__(self):
         return f"Schematic '{self.tags["name"]}' with {len(self.tiles)} blocks"
@@ -37,13 +37,13 @@ class Schematic:
         a.tiles = self.tiles.copy()
         a.tags = self.tags.copy()
         a.labels = self.labels.copy()
-        a.filled_list = self.filled_list.copy()
+        a._filled_list = self._filled_list.copy()
         return(a)
 
     def add_block(self, tile: Block, do_collision: bool = True):
-        if(self.test_block_collision(tile) == False or do_collision == False):
+        if(self._test_block_collision(tile) == False or do_collision == False):
             self.tiles.append(tile)
-            self.add_block_collision(tile)
+            self._add_block_collision(tile)
             return(tile)
         else:
             return(None)
@@ -55,20 +55,20 @@ class Schematic:
         for tile in schem.tiles:
             self.add_block(Block(tile.block, tile.x + x + offset_x, tile.y + y + offset_y, tile.config, tile.rotation))
 
-    def read(data: bytearray):
+    def _read(data: bytearray):
         self = Schematic()
         if data[:4] != b"msch":
             raise Exception("Invalid msch data")
         data = data[5:]
         data = bytearray(zlib.decompress(data))
         
-        width = ByteUtils.pop_int(data, 2)
-        height = ByteUtils.pop_int(data, 2)
+        width = _ByteUtils.pop_int(data, 2)
+        height = _ByteUtils.pop_int(data, 2)
 
-        tag_count = ByteUtils.pop_int(data, 1)
+        tag_count = _ByteUtils.pop_int(data, 1)
         for i in range(tag_count):
-            tag = ByteUtils.pop_UTF(data)
-            value = ByteUtils.pop_UTF(data)
+            tag = _ByteUtils.pop_UTF(data)
+            value = _ByteUtils.pop_UTF(data)
             self.tags[tag] = value
 
         if "labels" in self.tags:
@@ -77,32 +77,32 @@ class Schematic:
             
 
         types = []
-        type_count = ByteUtils.pop_int(data, 1)
+        type_count = _ByteUtils.pop_int(data, 1)
         for i in range(type_count):
-            types.append(ByteUtils.pop_UTF(data))
+            types.append(_ByteUtils.pop_UTF(data))
 
-        block_count = ByteUtils.pop_int(data, 4)
+        block_count = _ByteUtils.pop_int(data, 4)
         for i in range(block_count):
-            block_index = ByteUtils.pop_int(data, 1)
-            block_x = ByteUtils.pop_int(data, 2)
-            block_y = ByteUtils.pop_int(data, 2)
-            block_config = ByteUtils.pop_object(data)
-            block_rotation = ByteUtils.pop_int(data, 1)
+            block_index = _ByteUtils.pop_int(data, 1)
+            block_x = _ByteUtils.pop_int(data, 2)
+            block_y = _ByteUtils.pop_int(data, 2)
+            block_config = _ByteUtils.pop_object(data)
+            block_rotation = _ByteUtils.pop_int(data, 1)
 
             block_type = Content[types[block_index].upper().replace('-', '_')]
             self.add_block(Block(block_type, block_x, block_y, block_config, block_rotation))    
 
         return(self)
 
-    def read_str(str):
-        return Schematic.read(base64.standard_b64decode(bytearray(str, "utf8")))
+    def read_str(string: str):
+        return Schematic._read(base64.standard_b64decode(bytearray(string, "utf8")))
 
     def read_file(file_path: str):
         with open(file_path, "rb") as file:
             data = bytearray(file.read())
-            return Schematic.read(data)
+            return Schematic._read(data)
 
-    def write(self):
+    def _write(self):
 
         schem = self.copy()
 
@@ -117,15 +117,15 @@ class Schematic:
             block.x = block.x + offset_x
             block.y = block.y + offset_y
 
-        buffer = ByteBuffer()
+        buffer = _ByteBuffer()
 
         buffer.writeUShort(width)
         buffer.writeUShort(height)
 
         labels = "["
         for label in schem.labels:
-            labels += f"{label}, "
-        labels = labels.rstrip(', ') + ']'
+            labels += f"{label},"
+        labels = labels.rstrip(',') + ']'
 
         schem.set_tag('labels', labels)
 
@@ -145,17 +145,18 @@ class Schematic:
             buffer.writeObject(t.config) #config
             buffer.writeByte(t.rotation) #rotation
 
+        #print(b"msch\x01"+zlib.compress(buffer.data))
         return(b"msch\x01"+zlib.compress(buffer.data))
 
     def write_str(self):
-        return(base64.standard_b64encode(self.write()).decode())
+        return base64.standard_b64encode(self._write()).decode()
 
     def write_clipboard(self):
         pyperclip.copy(self.write_str())
 
     def write_file(self, file_path: str):
         file = open(file_path, 'wb')
-        file.write(self.write())
+        file.write(self._write())
         file.close()
 
     def set_tag(self, tag: str, value: str):
@@ -164,22 +165,22 @@ class Schematic:
     def add_label(self, label: str):
         self.labels.append(label)
 
-    def add_block_collision(self, block: Block):
+    def _add_block_collision(self, block: Block):
         smallest_x = block.x - ((block.block.value.size - 1) // 2)
         smallest_y = block.y - ((block.block.value.size - 1) // 2)
 
         for x in range(smallest_x, smallest_x + block.block.value.size, 1):
             for y in range(smallest_y, smallest_y + block.block.value.size, 1):
-                if((x, y) not in self.filled_list):
-                    self.filled_list.append((x, y))
+                if((x, y) not in self._filled_list):
+                    self._filled_list.append((x, y))
 
-    def test_block_collision(self, block: Block):
+    def _test_block_collision(self, block: Block):
         smallest_x = block.x - ((block.block.value.size - 1) // 2)
         smallest_y = block.y - ((block.block.value.size - 1) // 2)
 
         for x in range(smallest_x, smallest_x + block.block.value.size, 1):
             for y in range(smallest_y, smallest_y + block.block.value.size, 1):
-                if((x, y) in self.filled_list):
+                if((x, y) in self._filled_list):
                     return(True)
         return(False)
 
@@ -830,7 +831,7 @@ class ProcessorConfig:
         self.links = links
 
     def compress(self):
-        buffer = ByteBuffer()
+        buffer = _ByteBuffer()
 
         buffer.writeByte(1)
 
@@ -847,15 +848,15 @@ class ProcessorConfig:
     def decompress(data):
         self = ProcessorConfig("", [])
         data = bytearray(zlib.decompress(data))
-        ByteUtils.pop_bytes(data, 1)
-        code_len = ByteUtils.pop_int(data, 4)
-        self.code = str(ByteUtils.pop_bytes(data, code_len), "ascii")
+        _ByteUtils.pop_bytes(data, 1)
+        code_len = _ByteUtils.pop_int(data, 4)
+        self.code = str(_ByteUtils.pop_bytes(data, code_len), "ascii")
 
-        link_len = ByteUtils.pop_int(data, 4)
+        link_len = _ByteUtils.pop_int(data, 4)
         for i in range(link_len):
-            link_name = ByteUtils.pop_UTF(data)
-            link_x = ByteUtils.pop_int(data, 2, signed=True)
-            link_y = ByteUtils.pop_int(data, 2, signed=True)
+            link_name = _ByteUtils.pop_UTF(data)
+            link_x = _ByteUtils.pop_int(data, 2, signed=True)
+            link_y = _ByteUtils.pop_int(data, 2, signed=True)
             self.links.append(ProcessorLink(link_x, link_y, link_name))
         return self
 
@@ -877,7 +878,7 @@ class ProcessorLink:
     def __repr__(self):
         return(f"ProcessorLink(pos = ({self.x}, {self.y}), name = \"{self.name}\")")
 
-class ByteBuffer():
+class _ByteBuffer():
     def __init__(self):
         self.data = bytearray()
         
@@ -888,7 +889,7 @@ class ByteBuffer():
         self.data += struct.pack(">h", var)
 
     def writeUTF(self, var: str):
-        self.writeUShort(len(var))
+        self.writeUShort(len(var.encode("UTF")))
         self.data += bytes(var.encode("UTF"))
 
     def writeString(self, var: str):
@@ -1003,7 +1004,7 @@ class ByteBuffer():
         else:
            print("Unknown object type")
 
-class ByteUtils:
+class _ByteUtils:
     def pop_bytes(data: bytearray, byte_count: int):
         out_bytes = bytearray()
         for i in range(byte_count):
@@ -1011,60 +1012,60 @@ class ByteUtils:
         return(out_bytes)
 
     def pop_int(data: bytearray, byte_count: int, signed=False):
-        return(int.from_bytes(ByteUtils.pop_bytes(data, byte_count), signed=signed))
+        return(int.from_bytes(_ByteUtils.pop_bytes(data, byte_count), signed=signed))
 
     def pop_float(data: bytearray):
-        return(struct.unpack('f', ByteUtils.pop_bytes(data, 4)))
+        return(struct.unpack('f', _ByteUtils.pop_bytes(data, 4)))
 
     def pop_double(data: bytearray):
-        return(struct.unpack('d', ByteUtils.pop_bytes(data, 8)))
+        return(struct.unpack('d', _ByteUtils.pop_bytes(data, 8)))
 
     def pop_bool(data: bytearray):
-        return(struct.unpack('?', ByteUtils.pop_bytes(data, 1)))
+        return(struct.unpack('?', _ByteUtils.pop_bytes(data, 1)))
 
     def pop_UTF(data: bytearray):
-        char_count = ByteUtils.pop_int(data, 2)
-        return str(ByteUtils.pop_bytes(data, char_count), "UTF")
+        char_count = _ByteUtils.pop_int(data, 2)
+        return str(_ByteUtils.pop_bytes(data, char_count), "UTF")
 
     def pop_object(data: bytearray):
-        obj_type = ByteUtils.pop_int(data, 1)
+        obj_type = _ByteUtils.pop_int(data, 1)
         match obj_type:
             case 0: #null
                 return None
             case 1: #int
-                return ByteUtils.pop_int(data, 4, signed=True)
+                return _ByteUtils.pop_int(data, 4, signed=True)
             case 2: #long
-                return ByteUtils.pop_int(data, 8, signed=True)
+                return _ByteUtils.pop_int(data, 8, signed=True)
             case 3: #float
-                return ByteUtils.pop_float(data)
+                return _ByteUtils.pop_float(data)
             case 4: #double
-                return ByteUtils.pop_double(data)
+                return _ByteUtils.pop_double(data)
             case 5: #content
-                type_id = ByteUtils.pop_int(data, 1)
-                content_id = ByteUtils.pop_int(data, 2)
+                type_id = _ByteUtils.pop_int(data, 1)
+                content_id = _ByteUtils.pop_int(data, 2)
                 return ContentLists.REVERSE_LOOKUP[type_id.value][content_id]
             case 7: #point
-                x = ByteUtils.pop_int(data, 4, signed=True)
-                y = ByteUtils.pop_int(data, 4, signed=True)
+                x = _ByteUtils.pop_int(data, 4, signed=True)
+                y = _ByteUtils.pop_int(data, 4, signed=True)
                 return Point(x, y)
             case 8:
                 out_arr = PointArray()
-                arr_len = ByteUtils.pop_int(data, 1)
+                arr_len = _ByteUtils.pop_int(data, 1)
                 for i in range(arr_len):
-                    x = ByteUtils.pop_int(data, 2, signed=True)
-                    y = ByteUtils.pop_int(data, 2, signed=True)
+                    x = _ByteUtils.pop_int(data, 2, signed=True)
+                    y = _ByteUtils.pop_int(data, 2, signed=True)
                     out_arr.append(Point(x, y))
             case 10: #bool
-                return ByteUtils.pop_bool(data)
+                return _ByteUtils.pop_bool(data)
             case 11: #double
-                return ByteUtils.pop_double(data)
+                return _ByteUtils.pop_double(data)
             case 14: #byte array
-                arr_len = ByteUtils.pop_int(data, 4)
-                return ByteUtils.pop_bytes(data, arr_len)
+                arr_len = _ByteUtils.pop_int(data, 4)
+                return _ByteUtils.pop_bytes(data, arr_len)
             case 22: #object array
                 out_list = []
-                arr_len = ByteUtils.pop_int(data, 4)
+                arr_len = _ByteUtils.pop_int(data, 4)
                 for i in range(arr_len):
-                    out_list.append(ByteUtils.pop_object(data))
+                    out_list.append(_ByteUtils.pop_object(data))
             case _:
                 raise Exception(f"Unknown object type {obj_type}")
