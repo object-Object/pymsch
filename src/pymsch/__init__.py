@@ -84,7 +84,6 @@ class Schematic:
         block_count = _ByteUtils.pop_int(data, 4)
         for i in range(block_count):
             block_index = _ByteUtils.pop_int(data, 1)
-            print(block_index)
             block_x = _ByteUtils.pop_int(data, 2)
             block_y = _ByteUtils.pop_int(data, 2)
             block_config = _ByteUtils.pop_object(data)
@@ -1009,7 +1008,6 @@ class _ByteUtils:
         out_bytes = bytearray()
         for i in range(byte_count):
             out_bytes.append(data.pop(0))
-        print(out_bytes)
         return(out_bytes)
 
     def pop_int(data: bytearray, byte_count: int, signed=False):
