@@ -30,7 +30,7 @@ jobs:
         run: uv pip install -e . --group test --group build
 
       - name: Run tests
-        run: python -m pytest
+        run: python -m pytest -v
 
       - name: Build package
         run: python -m build
