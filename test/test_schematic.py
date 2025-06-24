@@ -43,40 +43,19 @@ def assert_schematic_blocks_eq(want: Schematic, got: Schematic):
         pytest.param(
             make_schematic(
                 Block(Content.SORTER, 0, 0, None, 0),
-                Block(Content.SORTER, 1, 0, 0, 0),
-                Block(Content.SORTER, 2, 0, 15, 0),
+                Block(Content.SORTER, 1, 0, Content.COPPER, 0),
+                Block(Content.SORTER, 2, 0, Content.PYRATITE, 0),
             ),
             "bXNjaAF4nDWIOw6AIBTACigODh7QOKC8gQTBAN7fX+zSphiUoUtuF4YzPfaMXupWwtFCToCNbpVY0fOisDWXJuXehh8F/Vf6rYkLXaIPQw==",
             id="sorters",
         ),
     ],
 )
-def test_read_str(schematic: Schematic, data: str):
-    got = Schematic.read_str(data)
-    assert_schematic_blocks_eq(schematic, got)
+class TestBase32:
+    def test_read_str(self, schematic: Schematic, data: str):
+        got = Schematic.read_str(data)
+        assert_schematic_blocks_eq(schematic, got)
 
-
-@pytest.mark.parametrize(
-    ["schematic"],
-    [
-        pytest.param(
-            make_schematic(Block(Content.SWITCH, 0, 0, False, 0)),
-            id="switch_off",
-        ),
-        pytest.param(
-            make_schematic(Block(Content.SWITCH, 0, 0, True, 0)),
-            id="switch_on",
-        ),
-        pytest.param(
-            make_schematic(
-                Block(Content.SORTER, 0, 0, None, 0),
-                Block(Content.SORTER, 1, 0, 0, 0),
-                Block(Content.SORTER, 2, 0, 15, 0),
-            ),
-            id="sorters",
-        ),
-    ],
-)
-def test_round_trip(schematic: Schematic):
-    got = Schematic.read_str(schematic.write_str())
-    assert_schematic_blocks_eq(schematic, got)
+    def test_round_trip(self, schematic: Schematic, data: str):
+        got = Schematic.read_str(schematic.write_str())
+        assert_schematic_blocks_eq(schematic, got)
