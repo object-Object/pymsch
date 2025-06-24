@@ -2,7 +2,7 @@
 name = "pymsch"
 version = "0.0.11"
 authors = [
-  {name="skyethefoxyfox"},
+    {name="skyethefoxyfox"},
 ]
 description = "A package for creating mindustry schematic files"
 readme = "README.md"
@@ -12,7 +12,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "pyperclip",
+]
+
+[project.urls]
+Source = "https://github.com/SkyeTheFoxyFox/pymsch"
 
 [build-system]
-requires = ["hatchling", "pyperclip"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
