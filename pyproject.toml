@@ -21,6 +21,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+build = [
+    "build",
+]
 test = [
     "pytest~=8.4.1",
 ]
